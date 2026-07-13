@@ -1,97 +1,83 @@
 # Kalman Filter: Position and Velocity Estimation from Noisy Position Measurements
 
-This repository implements a **2-State Linear Kalman Filter** in Python to estimate both **position** and **velocity** using **only noisy position measurements**.
+A Python implementation of a **Linear Kalman Filter** for estimating **position** and **velocity** using **only noisy position measurements**.
 
-The example is based on the classic **sonar altitude estimation** problem where the sensor measures altitude (position) but does **not** directly measure velocity.
+This project demonstrates the complete implementation of a 2-state Kalman Filter using a simulated **sonar altitude estimation** example.
 
 ---
 
-# Problem Statement
+## Features
+
+- Linear Kalman Filter implementation from scratch
+- Position and velocity estimation
+- Noisy sonar measurement simulation
+- RMSE evaluation
+- Error covariance visualization
+- Kalman Gain visualization
+- Well-commented Python code for beginners
+
+---
+
+## Problem Statement
 
 Suppose a drone is descending vertically.
 
-We can measure its altitude using a noisy sonar sensor, but we cannot measure its velocity directly.
+A sonar sensor measures only the altitude (position), but the velocity is **not measured directly**.
 
-Instead of differentiating noisy measurements, we use a **Kalman Filter** to simultaneously estimate
-
-- Position
-- Velocity
-
-from noisy position measurements.
+Instead of estimating velocity by differentiating noisy measurements, the Kalman Filter estimates both states simultaneously.
 
 ---
 
-# State Model
+# System Model
 
-The system state is
+## State Vector
 
-\[
-x_k=
-\begin{bmatrix}
-p_k\\
-v_k
-\end{bmatrix}
-\]
+```text
+        | Position |
+x(k) =  |          |
+        | Velocity |
+```
 
 where
 
-- \(p_k\) = Position
-- \(v_k\) = Velocity
+- Position = Altitude of the drone
+- Velocity = Vertical speed of the drone
 
 ---
 
-# Motion Model
+## State Transition Matrix
 
-We assume **constant velocity motion**
-
-\[
-x_{k+1}=Ax_k+w_k
-\]
+```text
+      | 1   dt |
+A =   |        |
+      | 0    1 |
+```
 
 where
 
-\[
-A=
-\begin{bmatrix}
-1 & \Delta t\\
-0 & 1
-\end{bmatrix}
-\]
+```
+dt = 0.02 seconds
+```
 
-with
+This assumes a **constant velocity model**.
 
-- \(\Delta t=0.02\) sec
+The motion equations are
 
-The state transition equations become
+```text
+Position(k+1) = Position(k) + dt × Velocity(k)
 
-\[
-p_{k+1}=p_k+\Delta t\,v_k
-\]
-
-\[
-v_{k+1}=v_k
-\]
+Velocity(k+1) = Velocity(k)
+```
 
 ---
 
-# Measurement Model
+## Measurement Matrix
 
-The sonar only measures position.
+The sonar measures only position.
 
-\[
-z_k=Hx_k+v_k
-\]
-
-where
-
-\[
-H=
-\begin{bmatrix}
-1&0
-\end{bmatrix}
-\]
-
-Only the first state (position) is observed.
+```text
+H = [1  0]
+```
 
 ---
 
@@ -99,15 +85,11 @@ Only the first state (position) is observed.
 
 ## Process Noise
 
-The implementation uses
-
-\[
-Q=
-\begin{bmatrix}
-1&0\\
-0&3
-\end{bmatrix}
-\]
+```text
+      | 1  0 |
+Q =   |      |
+      | 0  3 |
+```
 
 This models uncertainty in the constant velocity assumption.
 
@@ -115,20 +97,15 @@ This models uncertainty in the constant velocity assumption.
 
 ## Measurement Noise
 
-The sonar measurement noise is
+```text
+R = [10]
+```
 
-\[
-R=
-\begin{bmatrix}
-10
-\end{bmatrix}
-\]
+The measurement noise standard deviation is
 
-corresponding to a standard deviation of
-
-\[
-\sigma=\sqrt{10}\approx3.16\;m
-\]
+```text
+σ = √10 ≈ 3.16 m
+```
 
 ---
 
@@ -136,29 +113,25 @@ corresponding to a standard deviation of
 
 Initial state estimate
 
-\[
-\hat{x}_0=
-\begin{bmatrix}
-200\\
-0
-\end{bmatrix}
-\]
+```text
+        |200|
+x₀  =   |   |
+        | 0 |
+```
 
 Initial covariance
 
-\[
-P_0=
-\begin{bmatrix}
-50&0\\
-0&20
-\end{bmatrix}
-\]
+```text
+      |50   0|
+P₀ =  |      |
+      | 0  20|
+```
 
-The filter initially assumes
+Initially we assume
 
-- altitude ≈ 200 m
-- velocity unknown (set to zero)
-- large uncertainty
+- Position ≈ 200 m
+- Velocity = 0 m/s
+- Large uncertainty
 
 ---
 
@@ -168,97 +141,95 @@ Each iteration consists of two stages.
 
 ---
 
-## 1. Prediction
+## 1. Prediction Step
 
-### State Prediction
+### Predict State
 
-\[
-\hat{x}_k^-=A\hat{x}_{k-1}
-\]
+```text
+x̂⁻ = A x̂
+```
 
-### Covariance Prediction
+### Predict Covariance
 
-\[
-P_k^-=AP_{k-1}A^T+Q
-\]
+```text
+P⁻ = A P Aᵀ + Q
+```
 
 ---
 
-## 2. Innovation
+## 2. Innovation Step
 
 Innovation
 
-\[
-y_k=z_k-H\hat{x}_k^-
-\]
+```text
+y = z − Hx̂⁻
+```
 
-Innovation covariance
+Innovation Covariance
 
-\[
-S_k=HP_k^-H^T+R
-\]
+```text
+S = H P⁻ Hᵀ + R
+```
 
 ---
 
 ## 3. Kalman Gain
 
-\[
-K_k=P_k^-H^TS_k^{-1}
-\]
+```text
+K = P⁻ Hᵀ S⁻¹
+```
 
-The Kalman gain determines how much the prediction should trust the new measurement.
-
----
-
-## 4. Update
-
-State update
-
-\[
-\hat{x}_k=\hat{x}_k^-+K_ky_k
-\]
-
-Covariance update
-
-\[
-P_k=(I-K_kH)P_k^-
-\]
+The Kalman Gain determines how much the prediction should trust the new measurement.
 
 ---
 
-# Numerical Example (First Iteration)
+## 4. Update Step
+
+Update State
+
+```text
+x̂ = x̂⁻ + Ky
+```
+
+Update Covariance
+
+```text
+P = (I − KH)P⁻
+```
+
+---
+
+# Numerical Example
 
 Suppose the first sonar measurement is
 
-\[
-z_1=199.2\,m
-\]
+```text
+z₁ = 199.2 m
+```
 
 ---
 
 ## Prediction
 
-Predicted state
+Predicted State
 
-\[
-\hat{x}_1^-=
-\begin{bmatrix}
-200\\
-0
-\end{bmatrix}
-\]
+```text
+        |200|
+x̂⁻ =   |   |
+        | 0 |
+```
 
-Predicted covariance
+Predicted Covariance
 
-\[
-P_1^-=
-\begin{bmatrix}
-51.008&0.4\\
-0.4&23
-\end{bmatrix}
-\]
+```text
+      |51.008   0.4|
+P⁻ =  |            |
+      |0.4      23 |
+```
 
-Notice that the off-diagonal terms become non-zero, indicating correlation between position and velocity uncertainty.
+Notice that the off-diagonal elements become non-zero.
+
+This creates a correlation between position and velocity uncertainty, allowing the Kalman Filter to estimate velocity even though it is never measured directly.
 
 ---
 
@@ -266,169 +237,211 @@ Notice that the off-diagonal terms become non-zero, indicating correlation betwe
 
 Predicted measurement
 
-\[
-H\hat{x}_1^-=200
-\]
+```text
+200 m
+```
 
 Innovation
 
-\[
-y_1=199.2-200=-0.8
-\]
+```text
+199.2 − 200 = -0.8 m
+```
 
 Innovation covariance
 
-\[
-S_1=61.008
-\]
+```text
+61.008
+```
 
 ---
 
 ## Kalman Gain
 
-\[
-K_1=
-\begin{bmatrix}
-0.8362\\
-0.00656
-\end{bmatrix}
-\]
+```text
+      |0.8362 |
+K =   |       |
+      |0.00656|
+```
 
-Interpretation:
+Interpretation
 
-- Position gain is large → strongly trust the new measurement.
-- Velocity gain is small → velocity is only indirectly corrected.
+- Position gain is large
+- Velocity gain is small
+
+Therefore,
+
+- Position changes significantly
+- Velocity changes only slightly
 
 ---
 
 ## Updated State
 
-\[
-\hat{x}_1=
-\begin{bmatrix}
-199.331\\
--0.00525
-\end{bmatrix}
-\]
+```text
+        |199.331 |
+x̂ =    |        |
+        |-0.00525|
+```
 
-The position moves significantly toward the measurement, while the velocity changes only slightly.
+The filter moves the position estimate toward the measurement while making only a small correction to velocity.
 
 ---
 
 ## Updated Covariance
 
-\[
-P_1\approx
-\begin{bmatrix}
-8.355&0.065\\
-0.065&22.997
-\end{bmatrix}
-\]
-
-Position uncertainty decreases substantially after the first measurement, whereas velocity uncertainty reduces more gradually over successive iterations.
-
----
-
-# Output Metrics
-
-The implementation computes
-
-- Raw sonar position RMSE
-- Kalman-filtered position RMSE
-- Velocity estimation RMSE
-
-Example:
-
-```
-RMSE raw sonar position : 3.17 m
-RMSE Kalman position    : 1.02 m
-RMSE Kalman velocity    : 0.35 m/s
+```text
+      |8.355   0.065|
+P =   |             |
+      |0.065 22.997 |
 ```
 
-*(Exact values vary because measurement noise is randomly generated.)*
+Notice
 
----
-
-# Generated Plots
-
-The program produces four plots:
-
-### 1. Position Estimation
-
-- True position
-- Noisy sonar measurements
-- Kalman filter estimate
-
----
-
-### 2. Velocity Estimation
-
-Shows how the filter estimates velocity even though it is never directly measured.
-
----
-
-### 3. Error Covariance
-
-Displays
-
-- Position variance
-- Velocity variance
-
-Both gradually decrease as confidence in the estimates improves.
-
----
-
-### 4. Kalman Gain
-
-Illustrates the convergence of
-
-- Position gain
-- Velocity gain
-
-toward steady-state values.
+- Position uncertainty decreases dramatically.
+- Velocity uncertainty decreases slowly over multiple iterations.
 
 ---
 
 # Project Structure
 
-```
-.
+```text
+Kalman-Filter-Implementation-On-Python
+│
 ├── Kalman_Filter_SONAR_Example.py
 ├── kalman_position_velocity_sonar.png
-└── README.md
+├── README.md
+└── LICENSE
 ```
 
 ---
 
-# Requirements
+# Installation
 
-Install the required Python packages:
+Clone the repository
 
 ```bash
-pip install numpy pandas matplotlib
+git clone https://github.com/yourusername/Kalman-Filter-Implementation-On-Python.git
+```
+
+Move into the project directory
+
+```bash
+cd Kalman-Filter-Implementation-On-Python
+```
+
+Install dependencies
+
+```bash
+pip install numpy matplotlib pandas
 ```
 
 ---
 
-# Run
+# Running the Program
 
 ```bash
 python kalman_position_velocity.py
 ```
 
-The script prints the estimation metrics and saves the visualization figure.
+---
+
+# Output
+
+The program prints
+
+```text
+RMSE raw sonar position
+
+RMSE Kalman position
+
+RMSE Kalman velocity
+
+Final position estimate
+
+Final velocity estimate
+```
+
+and generates the following figure.
+
+```
+Altitude
+├── True Position
+├── Noisy Measurements
+└── Kalman Estimate
+
+Velocity
+├── True Velocity
+└── Estimated Velocity
+
+Error Covariance
+├── Position Variance
+└── Velocity Variance
+
+Kalman Gain
+├── Position Gain
+└── Velocity Gain
+```
+
+---
+
+# Example Output
+
+```text
+=== RESULTS ===
+
+RMSE raw sonar position : 3.12 m
+
+RMSE Kalman position : 1.05 m
+
+RMSE Kalman velocity : 0.34 m/s
+
+Final position estimate : 160.08 m
+
+Final velocity estimate : -4.98 m/s
+```
+
+*(Exact values vary because the measurement noise is randomly generated.)*
+
+---
+
+# Applications
+
+Kalman Filters are widely used in
+
+- Robotics
+- Autonomous Vehicles
+- GPS Navigation
+- UAV Navigation
+- Radar Tracking
+- Sonar Tracking
+- Sensor Fusion
+- Computer Vision
+- Object Tracking
+- Aerospace Systems
 
 ---
 
 # References
 
-- R. E. Kalman, "A New Approach to Linear Filtering and Prediction Problems", 1960.
-- Dan Simon, *Optimal State Estimation*.
-- Greg Welch & Gary Bishop, *An Introduction to the Kalman Filter*.
-- Brown & Hwang, *Introduction to Random Signals and Applied Kalman Filtering*.
+1. R. E. Kalman, "A New Approach to Linear Filtering and Prediction Problems", 1960.
+2. Greg Welch and Gary Bishop, *An Introduction to the Kalman Filter*.
+3. Dan Simon, *Optimal State Estimation*.
+4. Brown & Hwang, *Introduction to Random Signals and Applied Kalman Filtering*.
 
 ---
 
 # License
 
-This project is intended for educational and research purposes and demonstrates the implementation of a **Linear Kalman Filter for Position-Velocity Estimation** using noisy position-only measurements.
+This project is released under the **MIT License**.
+
+---
+
+# Author
+
+**Parthib Kumar Dey**
+
+M.Tech Smart Manufacturing  
+Department of Design and Manufacturing  
+Indian Institute of Science (IISc), Bengaluru
+
+GitHub: https://github.com/parthibtech123
